@@ -55,6 +55,9 @@ async function runCommanderCycle() {
       : `HIGH: Coordinated attack from ${enriched.length} IPs targeting ${allUsers.length} accounts.`
   };
 
+  console.log(`[Commander] Campaign match: ${finding.campaign_match ? '⚠️  YES — ' + finding.campaign?.name : 'No'}`);
+  console.log(`[Commander] Total targeted accounts: ${finding.targeted_accounts.length}`);
+
   console.log(`[Commander] Verdict: ${finding.verdict}`);
   await addThreatToGraph(finding);
   lastFindings = finding;
