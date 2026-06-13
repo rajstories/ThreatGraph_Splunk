@@ -8,96 +8,36 @@
 
 ```mermaid
 flowchart TD
-    classDef source    fill:#0D1B2A,stroke:#00D4FF,stroke-width:2px,color:#00D4FF
-    classDef splunk    fill:#0D1B2A,stroke:#FF3B5C,stroke-width:2px,color:#FF3B5C
-    classDef agent     fill:#0D1B2A,stroke:#8B5CF6,stroke-width:2px,color:#8B5CF6
-    classDef graph     fill:#0D1B2A,stroke:#FFB800,stroke-width:2px,color:#FFB800
-    classDef ai        fill:#0D1B2A,stroke:#00FF88,stroke-width:2px,color:#00FF88
-    classDef action    fill:#0D1B2A,stroke:#F97316,stroke-width:2px,color:#F97316
-    classDef output    fill:#0D1B2A,stroke:#6B7280,stroke-width:1px,color:#9CA3AF
+    A1([App Logs]) --> SP
+    A2([Auth Events]) --> SP
+    A3([Network Traffic]) --> SP
+    A4([Endpoint Data]) --> SP
 
-    A1[App Logs]:::source
-    A2[Auth Events]:::source
-    A3[Network Traffic]:::source
-    A4[Endpoint Data]:::source
-
-    A1 & A2 & A3 & A4 -->|HEC port 8088| SP
-
-    SP["Splunk SIEM
-    ─────────────────
-    MCP Server
-    SPL Search Engine
-    Log Indexing
-    Alert Actions"]:::splunk
+    SP[Splunk SIEM\nMCP Server · SPL · HEC]
 
     SP -->|Splunk MCP queries| CM
 
-    CM["Commander Agent
-    ─────────────────
-    Detect attack clusters
-    Enrich with graph data
-    Build verdict"]:::agent
+    CM[Commander Agent\nDetect · Enrich · Verdict]
 
-    CG["Campaign Knowledge Graph
-    ─────────────────
-    Neo4j · Cypher
-    IP nodes + Campaign nodes
-    Persistent threat memory"]:::graph
-
-    SAI["Splunk Hosted AI
-    ─────────────────
-    300-token context
-    Threat reasoning
-    Plain-English verdict"]:::ai
+    CG[(Campaign Graph\nNeo4j · Attack Memory)]
+    SAI[Splunk Hosted AI\nThreat Reasoning]
 
     CM <-->|checkIPInGraph| CG
     CM <-->|compressed context| SAI
 
-    CM --> IM
+    CM --> IM[Immediator Agent\nNormalize · Dispatch]
 
-    IM["Immediator Agent
-    ─────────────────
-    Normalize severity
-    Prioritize findings
-    Route to domains"]:::agent
+    IM --> IDA[Identity Agent\nLock Accounts · Revoke Tokens]
+    IM --> NWA[Network Agent\nBlock IPs · WAF · Rate Limit]
+    IM --> IFA[Infra Agent\nEscalate · Monitor]
 
-    IM --> IDA & NWA & IFA
+    IDA --> OUT[Incident Report + Audit Log]
+    NWA --> OUT
+    IFA --> OUT
 
-    IDA["Identity Agent
-    ─────────
-    Lock accounts
-    Revoke tokens"]:::action
-
-    NWA["Network Agent
-    ─────────
-    Block IPs
-    WAF rules
-    Rate limit"]:::action
-
-    IFA["Infra Agent
-    ─────────
-    Escalate monitoring
-    Increase verbosity"]:::action
-
-    IDA & NWA & IFA --> OUT
-
-    OUT["Output Layer
-    ─────────────────
-    Incident Report
-    Splunk Audit Log
-    Slack Alerts
-    Jira Tickets"]:::output
-
-    OUT --> AP["Human Approval
-    ─────────────────
-    Arjun · SOC Analyst
-    Review + sign-off
-    30 seconds"]:::output
-
-    AP -->|confirmed nodes| CG
+    OUT --> AP[SOC Analyst Approval\nArjun · 30 seconds]
+    AP -->|confirmed nodes added| CG
 ```
-
----
 
 ## Agent Pipeline — Detailed Flow
 
