@@ -35,13 +35,18 @@ async function runSearch(spl) {
 }
 
 async function findAttackClusters() {
-  return await runSearch(
-    'search index=main sourcetype=auth_events status=FAILURE earliest=-60m ' +
-    '| stats count, values(username) as targeted_users by src_ip ' +
-    '| where count > 15 ' +
-    '| eval severity=if(count>50,"HIGH","MEDIUM") ' +
-    '| sort -count'
-  );
+  try {
+    return await runSearch(
+      'search index=main sourcetype=auth_events status=FAILURE earliest=-60m ' +
+      '| stats count, values(username) as targeted_users by src_ip ' +
+      '| where count > 15 ' +
+      '| eval severity=if(count>50,"HIGH","MEDIUM") ' +
+      '| sort -count'
+    );
+  } catch (err) {
+    console.error('[MCP] Splunk query failed:', err.message);
+    return [];
+  }
 }
 
 async function getAlertCount() {
