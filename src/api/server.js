@@ -40,6 +40,18 @@ app.post('/api/approve', (req, res) => {
 
 app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
 
+app.get('/api/status', (req, res) => {
+  res.json({
+    service: 'ThreatPilot',
+    version: '1.0.0',
+    agents: ['commander', 'immediator', 'identity', 'network', 'infra'],
+    splunk: process.env.SPLUNK_URL,
+    neo4j: process.env.NEO4J_URI,
+    incident_count: latestIncident ? 1 : 0,
+    uptime_seconds: Math.floor(process.uptime())
+  });
+});
+
 app.listen(3001, () => {
   console.log('\nThreatPilot API → http://localhost:3001');
   console.log('POST /api/run-detection  — trigger detection');
