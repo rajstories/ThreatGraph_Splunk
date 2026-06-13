@@ -590,7 +590,7 @@ The Campaign Knowledge Graph turns isolated incidents into connected intelligenc
 
 <div align="center">
 
-### Built for Splunk Agentic Ops Hackathon 2025 · Security Track
+### Built for Splunk Agentic Ops Hackathon 2026 · Security Track
 
 ---
 
