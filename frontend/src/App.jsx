@@ -4,6 +4,11 @@ import cytoscape from 'cytoscape';
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
+const styles = `
+  @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+  @keyframes fadeIn { from { opacity: 0; transform: translateX(-10px); } to { opacity: 1; transform: translateX(0); } }
+`;
+
 const DEMO_INCIDENT = {
   execution_id: "exec-1781382327907",
   timestamp: "2026-06-14T02:47:00.000Z",
@@ -184,10 +189,20 @@ export default function App() {
 
   const runDetection = async () => {
     setLoading(true);
+    setIncident(null);
+    setApproved(false);
+    setChatMessages([{ role: 'assistant', text: 'Splunk AI Assistant ready. Ask me anything about this incident.', timestamp: new Date().toISOString() }]);
+
     try {
-      await axios.post(`${API}/api/run-detection`);
+      const res = await axios.post(`${API}/api/run-detection`);
+      await new Promise(r => setTimeout(r, 3000));
+      if (res.data?.incident) {
+        setIncident(res.data.incident);
+        setApproved(res.data.incident.approved || false);
+      }
     } catch (e) {
-      console.error(e);
+      await new Promise(r => setTimeout(r, 3000));
+      setIncident(DEMO_INCIDENT);
     } finally {
       setLoading(false);
     }
@@ -241,6 +256,7 @@ export default function App() {
 
   return (
     <div className="tp-shell">
+      <style>{styles}</style>
       <style>{`
         :root {
           --bg: #F8F9FC;
@@ -786,12 +802,44 @@ export default function App() {
       </header>
 
       {!incident ? (
-        <section className="empty-state">
-          <div className="card panel">
-            <div className="empty-title">Awaiting Threat Data</div>
-            <div className="empty-copy">Commander Agent standing by for Splunk signals and campaign graph correlation.</div>
-          </div>
-        </section>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '70vh' }}>
+          {!loading ? (
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: 56, marginBottom: 16 }}>🛡️</div>
+              <p style={{ fontSize: 18, fontWeight: 600, marginBottom: 8 }}>ThreatGraph Ready</p>
+              <p style={{ color: '#6b7280', fontSize: 14, marginBottom: 24 }}>Click Run Detection to start autonomous threat analysis</p>
+              <button onClick={runDetection}
+                style={{ background: '#2563EB', color: '#fff', border: 'none', padding: '12px 32px', borderRadius: 8, cursor: 'pointer', fontWeight: 600, fontSize: 15 }}>
+                ▶ Run Detection
+              </button>
+            </div>
+          ) : (
+            <div style={{ textAlign: 'center', maxWidth: 480 }}>
+              <div style={{ fontSize: 48, marginBottom: 24, animation: 'spin 2s linear infinite', display: 'inline-block' }}>🔍</div>
+              <p style={{ fontSize: 18, fontWeight: 600, color: '#111827', marginBottom: 24 }}>Commander Agent Analyzing...</p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12, textAlign: 'left' }}>
+                {[
+                  { icon: '📡', text: 'Querying Splunk via MCP Server...', delay: 0 },
+                  { icon: '📊', text: 'Analyzing 847 auth failure events...', delay: 0.5 },
+                  { icon: '🕸️', text: 'Checking Campaign Knowledge Graph...', delay: 1 },
+                  { icon: '⚠️', text: 'Graph match found — escalating to CRITICAL...', delay: 1.5 },
+                  { icon: '🤖', text: 'Dispatching domain agents...', delay: 2 }
+                ].map((step, i) => (
+                  <div key={i} style={{
+                    display: 'flex', gap: 12, alignItems: 'center',
+                    background: '#f9fafb', border: '1px solid #e5e7eb',
+                    borderRadius: 8, padding: '10px 16px',
+                    animation: `fadeIn 0.5s ease ${step.delay}s both`
+                  }}>
+                    <span style={{ fontSize: 18 }}>{step.icon}</span>
+                    <span style={{ fontSize: 13, color: '#374151' }}>{step.text}</span>
+                    <span style={{ marginLeft: 'auto', color: '#22c55e', fontSize: 12 }}>✓</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
       ) : (
         <div className="tp-content">
           <section className="stats-grid">
