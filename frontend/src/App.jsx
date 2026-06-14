@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import cytoscape from 'cytoscape';
 
-const API = 'http://localhost:3001';
+const API = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
 const DEMO_INCIDENT = {
   execution_id: "exec-1781382327907",
@@ -950,7 +950,7 @@ export default function App() {
                   {msg.spl && (
                     <div style={{ marginTop: 6, maxWidth: '80%', background: '#020812', border: '1px solid #1f2937', borderRadius: 6, padding: '6px 10px' }}>
                       <div style={{ color: '#4b5563', fontSize: 10, marginBottom: 3 }}>GENERATED SPL</div>
-                      <code style={{ color: '#00D4FF', fontSize: 10, whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>{msg.spl}</code>
+                      <code style={{ display: 'block', background: 'transparent', color: '#67E8F9', fontSize: 11, lineHeight: 1.6, padding: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{msg.spl}</code>
                     </div>
                   )}
 
