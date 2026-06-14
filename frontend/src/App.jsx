@@ -55,6 +55,11 @@ export default function App() {
   const [incident, setIncident] = useState(null);
   const [loading, setLoading] = useState(false);
   const [approved, setApproved] = useState(false);
+  const [chatMessages, setChatMessages] = useState([
+    { role: 'assistant', text: 'Splunk AI Assistant ready. Ask me anything about this incident.', timestamp: new Date().toISOString() }
+  ]);
+  const [chatInput, setChatInput] = useState('');
+  const [chatLoading, setChatLoading] = useState(false);
   const cyContainer = useRef(null);
   const cy = useRef(null);
 
@@ -191,6 +196,32 @@ export default function App() {
   const approve = async () => {
     await axios.post(`${API}/api/approve`);
     setApproved(true);
+  };
+
+  const askAssistant = async (question) => {
+    const q = question || chatInput;
+    if (!q.trim()) return;
+    setChatMessages(prev => [...prev, { role: 'user', text: q, timestamp: new Date().toISOString() }]);
+    setChatInput('');
+    setChatLoading(true);
+    try {
+      const res = await axios.post(`${API}/api/ask`, { question: q });
+      setChatMessages(prev => [...prev, {
+        role: 'assistant',
+        text: res.data.label,
+        spl: res.data.generated_spl,
+        results: res.data.results,
+        timestamp: res.data.timestamp
+      }]);
+    } catch {
+      setChatMessages(prev => [...prev, {
+        role: 'assistant',
+        text: 'Could not reach Splunk. Check connection.',
+        timestamp: new Date().toISOString()
+      }]);
+    } finally {
+      setChatLoading(false);
+    }
   };
 
   const sevColor = { CRITICAL: '#DC2626', HIGH: '#D97706', MEDIUM: '#2563EB' };
@@ -871,6 +902,107 @@ export default function App() {
               </button>
             )}
           </section>
+
+          {/* Splunk AI Assistant Chat */}
+          <div style={{ margin: '0 16px 24px', background: '#1a1d27', border: '1px solid #2d3748', borderRadius: 12, overflow: 'hidden' }}>
+            {/* Header */}
+            <div style={{ background: '#0f1117', padding: '14px 20px', borderBottom: '1px solid #2d3748', display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span style={{ fontSize: 16 }}>🤖</span>
+              <div>
+                <div style={{ color: '#00D4FF', fontWeight: 600, fontSize: 13 }}>Splunk AI Assistant</div>
+                <div style={{ color: '#4b5563', fontSize: 11 }}>Natural language queries over your Splunk data</div>
+              </div>
+              <span style={{ marginLeft: 'auto', background: '#00D4FF22', color: '#00D4FF', fontSize: 10, padding: '2px 8px', borderRadius: 20, border: '1px solid #00D4FF44' }}>LIVE</span>
+            </div>
+
+            {/* Quick questions */}
+            <div style={{ padding: '12px 20px', borderBottom: '1px solid #1f2937', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              {[
+                'Which accounts were targeted?',
+                'Which IPs are attacking?',
+                'How many total alerts?',
+                'Show attack timeline'
+              ].map(q => (
+                <button key={q} onClick={() => askAssistant(q)}
+                  style={{ background: '#1f2937', border: '1px solid #374151', color: '#9ca3af', fontSize: 11, padding: '5px 12px', borderRadius: 20, cursor: 'pointer' }}>
+                  {q}
+                </button>
+              ))}
+            </div>
+
+            {/* Messages */}
+            <div style={{ height: 280, overflowY: 'auto', padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {chatMessages.map((msg, i) => (
+                <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: msg.role === 'user' ? 'flex-end' : 'flex-start' }}>
+                  {/* Bubble */}
+                  <div style={{
+                    maxWidth: '80%',
+                    background: msg.role === 'user' ? '#2563EB' : '#1f2937',
+                    color: msg.role === 'user' ? '#fff' : '#e2e8f0',
+                    padding: '10px 14px',
+                    borderRadius: msg.role === 'user' ? '12px 12px 2px 12px' : '12px 12px 12px 2px',
+                    fontSize: 13
+                  }}>
+                    {msg.text}
+                  </div>
+
+                  {/* SPL badge */}
+                  {msg.spl && (
+                    <div style={{ marginTop: 6, maxWidth: '80%', background: '#020812', border: '1px solid #1f2937', borderRadius: 6, padding: '6px 10px' }}>
+                      <div style={{ color: '#4b5563', fontSize: 10, marginBottom: 3 }}>GENERATED SPL</div>
+                      <code style={{ color: '#00D4FF', fontSize: 10, whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>{msg.spl}</code>
+                    </div>
+                  )}
+
+                  {/* Results */}
+                  {msg.results && msg.results.length > 0 && (
+                    <div style={{ marginTop: 6, maxWidth: '90%', background: '#0f1117', border: '1px solid #1f2937', borderRadius: 8, padding: '10px 14px' }}>
+                      <div style={{ color: '#6b7280', fontSize: 10, marginBottom: 8 }}>RESULTS FROM SPLUNK</div>
+                      {msg.results.slice(0, 5).map((row, j) => (
+                        <div key={j} style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', borderBottom: j < Math.min(msg.results.length, 5) - 1 ? '1px solid #1f2937' : 'none' }}>
+                          <span style={{ color: '#d1d5db', fontSize: 12, fontFamily: 'monospace' }}>
+                            {Object.values(row)[0]}
+                          </span>
+                          <span style={{ color: '#00D4FF', fontSize: 12, fontWeight: 600 }}>
+                            {Object.values(row)[1]}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  <div style={{ color: '#374151', fontSize: 10, marginTop: 3 }}>
+                    {new Date(msg.timestamp).toLocaleTimeString()}
+                  </div>
+                </div>
+              ))}
+              {chatLoading && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <div style={{ background: '#1f2937', padding: '10px 14px', borderRadius: '12px 12px 12px 2px', color: '#6b7280', fontSize: 13 }}>
+                    Querying Splunk...
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Input */}
+            <div style={{ padding: '12px 20px', borderTop: '1px solid #1f2937', display: 'flex', gap: 10 }}>
+              <input
+                value={chatInput}
+                onChange={e => setChatInput(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && askAssistant()}
+                placeholder='Ask about this incident... e.g. "Which accounts were targeted?"'
+                style={{
+                  flex: 1, background: '#0f1117', border: '1px solid #374151', color: '#e2e8f0',
+                  padding: '10px 14px', borderRadius: 8, fontSize: 13, outline: 'none'
+                }}
+              />
+              <button onClick={() => askAssistant()}
+                style={{ background: '#2563EB', color: '#fff', border: 'none', padding: '10px 20px', borderRadius: 8, cursor: 'pointer', fontWeight: 600, fontSize: 13 }}>
+                Ask
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

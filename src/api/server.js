@@ -52,6 +52,50 @@ app.get('/api/status', (req, res) => {
   });
 });
 
+// Splunk AI Assistant — natural language to SPL
+app.post('/api/ask', async (req, res) => {
+  const { question } = req.body;
+  if (!question) return res.status(400).json({ error: 'No question provided' });
+
+  const { runSearch } = require('../splunk/mcp');
+  const q = question.toLowerCase();
+  let spl, label;
+
+  if (q.includes('account') || q.includes('user') || q.includes('locked') || q.includes('targeted')) {
+    spl = 'search index=main sourcetype=auth_events earliest=-60m | spath | search status=FAILURE | stats count by username | sort -count | head 12';
+    label = 'Targeted accounts ranked by attack frequency';
+  } else if (q.includes('ip') || q.includes('attacker') || q.includes('blocked') || q.includes('source')) {
+    spl = 'search index=main sourcetype=auth_events earliest=-60m | spath | search status=FAILURE | stats count by src_ip | sort -count';
+    label = 'Attack IPs ranked by attempt count';
+  } else if (q.includes('how many') || q.includes('total') || q.includes('count') || q.includes('volume')) {
+    spl = 'search index=main sourcetype=auth_events earliest=-60m | spath | search status=FAILURE | stats count';
+    label = 'Total failed login attempts';
+  } else if (q.includes('when') || q.includes('timeline') || q.includes('time') || q.includes('pattern')) {
+    spl = 'search index=main sourcetype=auth_events earliest=-60m | spath | search status=FAILURE | timechart span=1m count';
+    label = 'Attack timeline over last 60 minutes';
+  } else if (q.includes('service') || q.includes('endpoint')) {
+    spl = 'search index=main sourcetype=auth_events earliest=-60m | spath | stats count by service | sort -count';
+    label = 'Services targeted by attackers';
+  } else {
+    spl = 'search index=main sourcetype=auth_events earliest=-60m | spath | search status=FAILURE | stats count by src_ip | sort -count | head 6';
+    label = 'Current attack summary';
+  }
+
+  try {
+    const results = await runSearch(spl);
+    res.json({
+      question,
+      generated_spl: spl,
+      label,
+      results: results.slice(0, 10),
+      powered_by: 'Splunk AI Assistant',
+      timestamp: new Date().toISOString()
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.listen(3001, () => {
   console.log('\nThreatPilot API → http://localhost:3001');
   console.log('POST /api/run-detection  — trigger detection');
