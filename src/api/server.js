@@ -54,6 +54,24 @@ app.use(cors({
 app.options('*', cors());
 app.use(express.json());
 
+app.get('/', (req, res) => {
+  res.json({
+    name: 'ThreatGraph API',
+    description: 'Autonomous Agentic SOC on Splunk — Splunk Agentic Ops Hackathon 2025',
+    status: 'active',
+    mode: IS_DEMO ? 'demo' : 'live',
+    endpoints: {
+      'POST /api/run-detection': 'Trigger Commander Agent detection cycle',
+      'GET  /api/incident':      'Get latest incident report',
+      'POST /api/approve':       'SOC analyst approval',
+      'POST /api/ask':           'Splunk AI Assistant natural language query',
+      'GET  /api/health':        'Health check'
+    },
+    frontend: 'https://threat-graph-splunk.vercel.app',
+    github: 'https://github.com/rajstories/ThreatGraph_Splunk'
+  });
+});
+
 let latestIncident = null;
 let isRunning = false;
 
