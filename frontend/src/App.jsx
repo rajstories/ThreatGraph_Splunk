@@ -93,22 +93,16 @@ export default function App() {
       ]),
     ];
 
-    const graphBox = cyContainer.current.getBoundingClientRect();
     const layout = {
       name: 'concentric',
-      minNodeSpacing: 36,
-      padding: 76,
+      minNodeSpacing: 50,
+      padding: 40,
       avoidOverlap: true,
       equidistant: true,
       animate: false,
-      boundingBox: {
-        x1: 0,
-        y1: 0,
-        w: graphBox.width,
-        h: graphBox.height,
-      },
       concentric: (node) => (node.data('type') === 'campaign' ? 2 : 1),
       levelWidth: () => 1,
+      spacingFactor: 1.25,
     };
 
     cy.current = cytoscape({
@@ -118,9 +112,9 @@ export default function App() {
         {
           selector: 'node[type="campaign"]',
           style: {
-            'background-color': '#FFB800',
+            'background-color': '#F59E0B',
             label: 'data(label)',
-            color: '#060B18',
+            color: '#111827',
             'font-family': 'JetBrains Mono, Courier New, monospace',
             'font-size': '8px',
             'font-weight': 700,
@@ -130,19 +124,15 @@ export default function App() {
             width: 92,
             height: 92,
             'border-width': 4,
-            'border-color': '#FFE7A0',
-            'underlay-color': '#FFB800',
-            'underlay-opacity': 0.26,
-            'underlay-padding': 12,
-            'underlay-shape': 'ellipse',
+            'border-color': '#FDE68A',
           },
         },
         {
           selector: 'node[type="ip"]',
           style: {
-            'background-color': '#FF3B5C',
+            'background-color': '#EF4444',
             label: 'data(label)',
-            color: '#F0F4FF',
+            color: '#FFFFFF',
             'font-family': 'JetBrains Mono, Courier New, monospace',
             'font-size': '8px',
             'font-weight': 700,
@@ -150,21 +140,17 @@ export default function App() {
             width: 68,
             height: 68,
             'border-width': 2,
-            'border-color': '#FF9AAD',
-            'underlay-color': '#FF3B5C',
-            'underlay-opacity': 0.28,
-            'underlay-padding': 10,
-            'underlay-shape': 'ellipse',
+            'border-color': '#FCA5A5',
           },
         },
         {
           selector: 'edge',
           style: {
             width: 2,
-            'line-color': '#00D4FF',
+            'line-color': '#CBD5E1',
             'line-style': 'dashed',
             'line-dash-pattern': [7, 5],
-            'target-arrow-color': '#00D4FF',
+            'target-arrow-color': '#CBD5E1',
             'target-arrow-shape': 'triangle',
             'curve-style': 'bezier',
             opacity: 0.78,
@@ -177,19 +163,17 @@ export default function App() {
     const centerGraph = () => {
       if (!cy.current) return;
       cy.current.resize();
-      cy.current.fit(cy.current.elements(), 80);
-
-      const box = cy.current.elements().renderedBoundingBox({ includeLabels: false, includeOverlays: true });
-      const dx = cy.current.width() / 2 - (box.x1 + box.x2) / 2;
-      const dy = cy.current.height() / 2 - (box.y1 + box.y2) / 2;
-      cy.current.panBy({ x: dx, y: dy });
+      setTimeout(() => {
+        cy.current.fit(cy.current.elements(), 50);
+        cy.current.center(cy.current.elements());
+      }, 10);
     };
 
     cy.current.on('layoutstop', centerGraph);
     cy.current.ready(() => {
-      centerGraph();
-      setTimeout(centerGraph, 80);
-      setTimeout(centerGraph, 250);
+      setTimeout(centerGraph, 50);
+      setTimeout(centerGraph, 200);
+      setTimeout(centerGraph, 400);
     });
   }, [incident]);
 
@@ -209,173 +193,149 @@ export default function App() {
     setApproved(true);
   };
 
-  const sevColor = { CRITICAL: '#FF3B5C', HIGH: '#FFB800', MEDIUM: '#00D4FF' };
+  const sevColor = { CRITICAL: '#DC2626', HIGH: '#D97706', MEDIUM: '#2563EB' };
   const statCards = [
-    { label: 'Total Alerts', value: incident?.total_alerts ?? '--', accent: '#FF3B5C', meta: 'SPLUNK SIGNALS' },
-    { label: 'Severity', value: incident?.severity ?? 'STANDBY', accent: sevColor[incident?.severity] || '#00D4FF', meta: 'RISK POSTURE', critical: incident?.severity === 'CRITICAL' },
-    { label: 'Locked', value: incident?.targeted_accounts?.length ?? '--', accent: '#FFB800', meta: 'ACCOUNTS' },
-    { label: 'Blocked', value: incident?.offenderIPs?.length ?? '--', accent: '#8B5CF6', meta: 'HOSTILE IPS' },
+    { label: 'Total Alerts', value: incident?.total_alerts ?? '--', accent: '#DC2626', meta: 'Splunk signals' },
+    { label: 'Severity', value: incident?.severity ?? 'STANDBY', accent: sevColor[incident?.severity] || '#2563EB', meta: 'Risk posture', critical: incident?.severity === 'CRITICAL' },
+    { label: 'Locked Accounts', value: incident?.targeted_accounts?.length ?? '--', accent: '#D97706', meta: 'Identity containment' },
+    { label: 'Blocked IPs', value: incident?.offenderIPs?.length ?? '--', accent: '#7C3AED', meta: 'Hostile sources' },
   ];
 
   const actionTone = (type = '') => {
-    if (type.includes('LOCKED') || type.includes('REVOKED')) return { icon: '🔴', color: '#FF3B5C', label: 'CONTAINED' };
-    if (type.includes('BLOCKED') || type.includes('RATE')) return { icon: '🟣', color: '#8B5CF6', label: 'BLOCKED' };
-    if (type.includes('ESCALATED') || type.includes('LOG')) return { icon: '🟡', color: '#FFB800', label: 'ESCALATED' };
-    return { icon: '🟢', color: '#00FF88', label: 'RESOLVED' };
+    if (type.includes('LOCKED') || type.includes('REVOKED')) return { color: '#DC2626', label: 'LOCKED' };
+    if (type.includes('BLOCKED') || type.includes('RATE')) return { color: '#7C3AED', label: 'BLOCKED' };
+    if (type.includes('ESCALATED') || type.includes('LOG')) return { color: '#D97706', label: 'ESCALATED' };
+    return { color: '#16A34A', label: 'RESOLVED' };
   };
 
   return (
     <div className="tp-shell">
       <style>{`
         :root {
-          --bg: #060B18;
-          --panel: rgba(255,255,255,0.03);
-          --panel-strong: rgba(255,255,255,0.04);
-          --border: rgba(255,255,255,0.08);
-          --cyan: #00D4FF;
-          --red: #FF3B5C;
-          --amber: #FFB800;
-          --green: #00FF88;
-          --purple: #8B5CF6;
-          --text: #F0F4FF;
-          --muted: rgba(255,255,255,0.4);
-          --terminal: #020812;
+          --bg: #F8F9FC;
+          --card: #FFFFFF;
+          --border: #E5E7EB;
+          --text: #111827;
+          --body: #374151;
+          --muted: #6B7280;
+          --label: #9CA3AF;
+          --blue: #2563EB;
+          --red: #DC2626;
+          --amber: #D97706;
+          --green: #16A34A;
+          --purple: #7C3AED;
+          --nav: #1E293B;
           --mono: 'JetBrains Mono', 'Courier New', monospace;
           --sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
         }
 
         * { box-sizing: border-box; }
-        body { margin: 0; background: var(--bg); }
+        body { margin: 0; background: var(--bg); color: var(--body); }
 
-        @keyframes pulse-red {
-          0%,100% { box-shadow: 0 0 15px rgba(255,59,92,0.4); }
-          50% { box-shadow: 0 0 35px rgba(255,59,92,0.8); }
-        }
-
-        @keyframes pulse-green {
-          0%,100% { box-shadow: 0 0 14px rgba(0,255,136,0.35), 0 0 0 0 rgba(0,255,136,0.28); }
-          50% { box-shadow: 0 0 34px rgba(0,255,136,0.7), 0 0 0 9px rgba(0,255,136,0); }
-        }
-
-        @keyframes blink {
-          0%, 45% { opacity: 1; }
-          46%, 100% { opacity: 0; }
-        }
-
-        @keyframes radar-ring {
-          0% { transform: scale(0.35); opacity: 0.9; }
-          100% { transform: scale(1.35); opacity: 0; }
-        }
-
-        @keyframes radar-sweep {
-          to { transform: rotate(360deg); }
+        @keyframes live-pulse {
+          0%, 100% { opacity: 1; transform: scale(1); }
+          50% { opacity: 0.45; transform: scale(0.82); }
         }
 
         .tp-shell {
           min-height: 100vh;
-          padding: 18px;
-          color: var(--text);
+          width: 100%;
+          color: var(--body);
           font-family: var(--sans);
-          background:
-            radial-gradient(circle at 18% 8%, rgba(0,212,255,0.16), transparent 26%),
-            radial-gradient(circle at 80% 20%, rgba(255,59,92,0.13), transparent 28%),
-            linear-gradient(180deg, #081125 0%, var(--bg) 42%, #030711 100%);
+          background: var(--bg);
           overflow-x: hidden;
         }
 
-        .tp-shell::before {
-          content: '';
-          position: fixed;
-          inset: 0;
-          pointer-events: none;
-          background-image:
-            linear-gradient(rgba(0,212,255,0.045) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(0,212,255,0.045) 1px, transparent 1px);
-          background-size: 48px 48px;
-          mask-image: linear-gradient(to bottom, rgba(0,0,0,0.8), transparent 85%);
+        .tp-content {
+          width: 100%;
+          padding: 24px;
+          display: grid;
+          gap: 20px;
         }
 
-        .glass {
-          position: relative;
-          background: var(--panel);
+        .card {
+          background: var(--card);
           border: 1px solid var(--border);
-          border-radius: 8px;
-          backdrop-filter: blur(12px);
-          box-shadow: 0 18px 60px rgba(0,0,0,0.34);
+          border-radius: 12px;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.08);
         }
 
         .top-bar {
           display: grid;
-          grid-template-columns: 1fr auto;
-          gap: 18px;
+          grid-template-columns: minmax(260px, 1fr) auto minmax(180px, 1fr);
+          gap: 20px;
           align-items: center;
-          padding: 18px 20px;
-          overflow: hidden;
+          width: 100%;
+          padding: 16px 24px;
+          background: var(--nav);
+          color: #FFFFFF;
         }
 
-        .brand-row, .status-row, .inline-center {
+        .brand-row,
+        .status-row,
+        .inline-center {
           display: flex;
           align-items: center;
           flex-wrap: wrap;
         }
 
         .brand-row { gap: 12px; }
-        .status-row { gap: 14px; margin-top: 8px; color: var(--muted); font-size: 12px; }
+        .status-row { justify-content: center; gap: 10px; }
         .inline-center { gap: 8px; }
 
         .shield {
-          width: 42px;
-          height: 42px;
+          width: 40px;
+          height: 40px;
           display: grid;
           place-items: center;
-          border: 1px solid rgba(0,212,255,0.32);
-          border-radius: 8px;
-          background: rgba(0,212,255,0.08);
-          box-shadow: 0 0 24px rgba(0,212,255,0.24);
+          border: 1px solid rgba(255,255,255,0.14);
+          border-radius: 10px;
+          background: rgba(255,255,255,0.08);
           font-size: 22px;
         }
 
         .brand-title {
           margin: 0;
-          color: var(--text);
-          font-size: clamp(21px, 3vw, 34px);
+          color: #FFFFFF;
+          font-size: 22px;
           line-height: 1;
           letter-spacing: 0;
-          font-weight: 900;
+          font-weight: 700;
         }
 
         .command-label {
-          color: var(--cyan);
-          font-family: var(--mono);
+          margin-top: 4px;
+          color: #CBD5E1;
           font-size: 12px;
           letter-spacing: 0;
         }
 
-        .live-pill, .soc-pill, .scan-pill {
+        .status-badge,
+        .count-badge {
           display: inline-flex;
           align-items: center;
           gap: 8px;
-          min-height: 28px;
+          min-height: 26px;
           padding: 5px 10px;
-          border: 1px solid rgba(0,212,255,0.24);
+          border: 1px solid rgba(255,255,255,0.14);
           border-radius: 999px;
-          color: var(--cyan);
-          background: rgba(0,212,255,0.06);
-          font-family: var(--mono);
+          color: #E5E7EB;
+          background: rgba(255,255,255,0.08);
           font-size: 12px;
+          font-weight: 500;
           white-space: nowrap;
         }
 
-        .soc-pill {
-          color: var(--text);
-          border-color: rgba(255,255,255,0.1);
-          background: rgba(255,255,255,0.045);
+        .count-badge {
+          color: var(--muted);
+          background: #F3F4F6;
+          border-color: #E5E7EB;
         }
 
-        .scan-pill {
-          color: var(--amber);
-          border-color: rgba(255,184,0,0.28);
-          background: rgba(255,184,0,0.08);
+        .status-badge.live {
+          color: #DCFCE7;
+          border-color: rgba(22,163,74,0.35);
+          background: rgba(22,163,74,0.18);
         }
 
         .live-dot, .status-dot {
@@ -383,27 +343,29 @@ export default function App() {
           height: 8px;
           border-radius: 999px;
           background: var(--green);
-          animation: pulse-green 1.6s infinite;
+          flex: 0 0 auto;
         }
 
-        .status-dot { width: 7px; height: 7px; animation-duration: 2.2s; }
-        .status-dot.cyan { background: var(--cyan); box-shadow: 0 0 12px rgba(0,212,255,0.75); animation: none; }
+        .live-dot { animation: live-pulse 1.8s ease-in-out infinite; }
+        .status-dot.blue { background: var(--blue); }
+        .status-dot.purple { background: var(--purple); }
 
         .run-button, .approve-button {
           border: 0;
           cursor: pointer;
-          color: #021018;
-          font-weight: 900;
+          font-weight: 700;
           letter-spacing: 0;
-          transition: transform 160ms ease, box-shadow 160ms ease, opacity 160ms ease;
+          transition: background 160ms ease, opacity 160ms ease, transform 160ms ease;
         }
 
         .run-button {
-          min-width: 184px;
-          padding: 14px 20px;
+          justify-self: end;
+          min-width: 170px;
+          padding: 12px 18px;
           border-radius: 8px;
-          background: linear-gradient(135deg, var(--cyan), #6AE8FF);
-          box-shadow: 0 0 24px rgba(0,212,255,0.34);
+          background: var(--blue);
+          color: #FFFFFF;
+          font-size: 14px;
         }
 
         .run-button:hover, .approve-button:hover { transform: translateY(-1px); }
@@ -412,107 +374,130 @@ export default function App() {
         .stats-grid {
           display: grid;
           grid-template-columns: repeat(4, minmax(0, 1fr));
-          gap: 12px;
-          margin: 14px 0;
+          gap: 20px;
         }
 
         .stat-card {
-          padding: 18px;
-          min-height: 124px;
+          position: relative;
+          padding: 20px 20px 20px 24px;
+          min-height: 132px;
           overflow: hidden;
         }
 
-        .stat-card.critical {
-          border-color: rgba(255,59,92,0.42);
-          animation: pulse-red 2s infinite;
+        .stat-card::before {
+          content: '';
+          position: absolute;
+          inset: 0 auto 0 0;
+          width: 4px;
+          background: var(--accent);
         }
 
-        .stat-meta, .panel-kicker, .action-kicker, .metric-label {
-          color: var(--muted);
-          font-family: var(--mono);
+        .stat-label,
+        .panel-kicker,
+        .action-kicker,
+        .metric-label {
+          color: var(--label);
           font-size: 11px;
+          font-weight: 500;
+          letter-spacing: 0.08em;
           text-transform: uppercase;
         }
 
         .stat-value {
-          margin-top: 13px;
+          margin-top: 16px;
           color: var(--accent);
-          font-size: clamp(29px, 4vw, 45px);
-          line-height: 0.95;
-          font-weight: 950;
+          font-size: clamp(30px, 3vw, 42px);
+          line-height: 1;
+          font-weight: 700;
           overflow-wrap: anywhere;
         }
 
-        .stat-label {
-          margin-top: 9px;
-          color: var(--text);
-          font-size: 12px;
-          font-weight: 800;
-          text-transform: uppercase;
+        .stat-meta {
+          margin-top: 12px;
+          color: var(--muted);
+          font-size: 13px;
+          line-height: 1.5;
         }
 
         .main-grid {
           display: grid;
-          grid-template-columns: minmax(0, 3fr) minmax(360px, 2fr);
-          gap: 14px;
+          grid-template-columns: 58fr 42fr;
+          gap: 20px;
+          align-items: stretch;
         }
 
         .panel {
-          padding: 20px;
-          min-height: 458px;
+          padding: 24px;
+          min-height: 560px;
+          height: 100%;
+          display: flex;
+          flex-direction: column;
         }
 
         .panel-header {
           display: flex;
           justify-content: space-between;
-          gap: 12px;
+          gap: 16px;
           align-items: flex-start;
-          margin-bottom: 16px;
+          margin-bottom: 20px;
         }
 
         .panel-title {
-          margin: 4px 0 0;
-          font-size: 18px;
-          font-weight: 900;
+          margin: 8px 0 0;
+          color: var(--text);
+          font-size: 20px;
+          line-height: 1.25;
+          font-weight: 700;
           text-transform: uppercase;
+        }
+
+        .title-line {
+          width: 44px;
+          height: 3px;
+          margin-top: 10px;
+          border-radius: 999px;
+          background: var(--blue);
         }
 
         .mono {
           font-family: var(--mono);
-          color: var(--cyan);
+          color: inherit;
+        }
+
+        .severity-row {
+          display: flex;
+          align-items: center;
+          gap: 16px;
+          flex-wrap: wrap;
+          margin-bottom: 20px;
         }
 
         .severity-badge {
           display: inline-flex;
           align-items: center;
-          gap: 8px;
-          padding: 8px 12px;
-          border: 1px solid rgba(255,59,92,0.42);
-          border-radius: 8px;
-          background: rgba(255,59,92,0.1);
-          color: var(--red);
+          padding: 10px 16px;
+          border-radius: 999px;
+          background: var(--red);
+          color: #FFFFFF;
           font-family: var(--mono);
-          font-weight: 900;
-          animation: pulse-red 2s infinite;
+          font-size: 13px;
+          font-weight: 700;
         }
 
         .execution-id {
           color: var(--muted);
           font-family: var(--mono);
-          font-size: 11px;
-          margin-top: 9px;
+          font-size: 12px;
           overflow-wrap: anywhere;
         }
 
         .campaign-banner {
-          margin: 16px 0;
-          padding: 14px;
-          border: 1px solid transparent;
-          border-radius: 8px;
-          background:
-            linear-gradient(#11111B, #11111B) padding-box,
-            linear-gradient(135deg, rgba(255,184,0,0.92), rgba(255,59,92,0.48), rgba(0,212,255,0.28)) border-box;
-          box-shadow: 0 0 24px rgba(255,184,0,0.14);
+          margin-bottom: 20px;
+          padding: 16px;
+          border: 1px solid #FDE68A;
+          border-left: 4px solid var(--amber);
+          border-radius: 12px;
+          background: #FFFBEB;
         }
 
         .campaign-title {
@@ -521,128 +506,119 @@ export default function App() {
           gap: 10px;
           color: var(--amber);
           font-size: 14px;
-          font-weight: 900;
+          font-weight: 700;
         }
 
         .campaign-copy {
-          margin-top: 7px;
-          color: rgba(240,244,255,0.76);
-          font-size: 13px;
-          line-height: 1.5;
+          margin-top: 8px;
+          color: var(--muted);
+          font-size: 14px;
+          line-height: 1.6;
         }
 
-        .terminal {
-          margin: 16px 0;
-          padding: 15px;
-          border: 1px solid rgba(0,212,255,0.28);
-          border-radius: 8px;
-          background: var(--terminal);
-          box-shadow: inset 0 0 24px rgba(0,212,255,0.05);
+        .campaign-name {
+          color: var(--text);
+          font-weight: 700;
+        }
+
+        .verdict-panel {
+          margin-bottom: 20px;
+          padding: 16px;
+          border: 1px solid #BFDBFE;
+          border-left: 4px solid var(--blue);
+          border-radius: 12px;
+          background: #EFF6FF;
         }
 
         .terminal-text {
           margin-top: 8px;
-          color: var(--cyan);
-          font-family: var(--mono);
-          font-size: 13px;
-          line-height: 1.65;
-        }
-
-        .terminal-text::after {
-          content: '█';
-          color: var(--green);
-          margin-left: 5px;
-          animation: blink 1s steps(1) infinite;
+          color: #1E293B;
+          font-size: 14px;
+          line-height: 1.7;
         }
 
         .accounts-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(122px, 1fr));
-          gap: 8px;
-          margin-top: 10px;
+          grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+          gap: 12px;
+          margin-top: 14px;
         }
 
         .account-pill {
-          min-width: 0;
-          padding: 8px 9px;
-          border: 1px solid rgba(255,59,92,0.45);
-          border-radius: 7px;
-          background: rgba(255,59,92,0.08);
-          color: #FF9AAD;
+          padding: 12px 14px;
+          border: 1px solid rgba(255, 59, 92, 0.25);
+          border-radius: 6px;
+          background: linear-gradient(135deg, rgba(255, 59, 92, 0.08) 0%, rgba(255, 59, 92, 0.03) 100%);
+          color: #FF3B5C;
           font-family: var(--mono);
-          font-size: 11px;
+          font-size: 12px;
+          font-weight: 500;
           overflow: hidden;
           text-overflow: ellipsis;
           white-space: nowrap;
+          transition: all 0.2s ease;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+
+        .account-pill:hover {
+          background: linear-gradient(135deg, rgba(255, 59, 92, 0.15) 0%, rgba(255, 59, 92, 0.08) 100%);
+          border-color: rgba(255, 59, 92, 0.4);
+          box-shadow: 0 0 12px rgba(255, 59, 92, 0.15);
         }
 
         .incident-footer {
-          margin-top: 16px;
+          margin-top: auto;
+          padding-top: 20px;
           color: var(--muted);
           font-family: var(--mono);
-          font-size: 11px;
+          font-size: 12px;
         }
 
         .graph-wrap {
           position: relative;
-          min-height: 460px;
-          border: 1px solid rgba(0,212,255,0.18);
+          flex: 0 0 60%;
+          min-height: 360px;
+          border: 1px solid var(--border);
           border-radius: 8px;
-          background: var(--terminal);
-          box-shadow: inset 0 0 36px rgba(0,212,255,0.04), 0 0 28px rgba(0,212,255,0.08);
+          background: #FFFFFF;
           overflow: hidden;
-        }
-
-        .graph-wrap::before {
-          content: '';
-          position: absolute;
-          inset: 0;
-          pointer-events: none;
-          background:
-            linear-gradient(rgba(0,212,255,0.04) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(0,212,255,0.04) 1px, transparent 1px);
-          background-size: 28px 28px;
         }
 
         .graph-canvas {
           position: relative;
           z-index: 1;
           width: 100%;
-          height: 460px;
+          height: 100%;
+          min-height: 360px;
         }
 
         .legend {
           display: flex;
           flex-wrap: wrap;
-          gap: 12px;
-          margin-top: 12px;
+          gap: 16px;
+          margin-top: 16px;
           color: var(--muted);
-          font-family: var(--mono);
-          font-size: 11px;
+          font-size: 12px;
         }
 
         .actions-panel {
-          margin-top: 14px;
-          padding: 18px;
+          padding: 24px;
         }
 
         .actions-strip {
           display: grid;
-          grid-auto-flow: column;
-          grid-auto-columns: minmax(220px, 1fr);
-          gap: 10px;
-          overflow-x: auto;
-          padding: 4px 2px 10px;
-          scrollbar-color: rgba(0,212,255,0.5) transparent;
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+          gap: 16px;
         }
 
         .action-card {
-          min-height: 104px;
-          padding: 13px;
-          border: 1px solid color-mix(in srgb, var(--tone) 42%, transparent);
-          border-radius: 8px;
-          background: linear-gradient(180deg, color-mix(in srgb, var(--tone) 13%, transparent), rgba(255,255,255,0.025));
-          box-shadow: 0 0 20px color-mix(in srgb, var(--tone) 16%, transparent);
+          min-height: 112px;
+          padding: 16px;
+          border: 1px solid var(--border);
+          border-radius: 12px;
+          background: #F3F4F6;
         }
 
         .action-head {
@@ -651,221 +627,178 @@ export default function App() {
           gap: 8px;
           align-items: center;
           color: var(--tone);
-          font-family: var(--mono);
           font-size: 11px;
-          font-weight: 900;
+          font-weight: 700;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
         }
 
         .action-type {
           margin-top: 12px;
-          color: var(--text);
+          color: var(--muted);
           font-size: 12px;
-          font-weight: 800;
+          font-weight: 600;
           text-transform: uppercase;
         }
 
         .action-target {
-          margin-top: 6px;
+          margin-top: 10px;
           display: inline-block;
           max-width: 100%;
-          padding: 5px 7px;
-          border: 1px solid color-mix(in srgb, var(--tone) 42%, transparent);
-          border-radius: 6px;
-          color: var(--cyan);
-          background: var(--terminal);
+          color: var(--text);
           font-family: var(--mono);
-          font-size: 11px;
+          font-size: 12px;
+          line-height: 1.5;
           overflow: hidden;
           text-overflow: ellipsis;
           white-space: nowrap;
         }
 
         .approve-wrap {
-          margin-top: 14px;
+          display: block;
         }
 
         .approve-button {
           width: 100%;
-          min-height: 64px;
+          min-height: 68px;
           border-radius: 8px;
-          background: linear-gradient(135deg, var(--green), #B6FFD8);
-          font-size: clamp(14px, 2.3vw, 18px);
-          animation: pulse-green 1.7s infinite;
+          background: var(--green);
+          color: #FFFFFF;
+          font-size: 17px;
         }
 
         .approved-card {
-          padding: 18px;
+          padding: 24px;
           text-align: center;
-          border-color: rgba(0,255,136,0.42);
-          background: rgba(0,255,136,0.1);
-          box-shadow: 0 0 26px rgba(0,255,136,0.18);
+          border-color: #86EFAC;
+          background: #F0FDF4;
         }
 
         .approved-title {
-          color: var(--green);
+          color: #166534;
           font-size: 18px;
-          font-weight: 900;
+          font-weight: 700;
         }
 
         .approved-time {
-          margin-top: 7px;
-          color: #B6FFD8;
-          font-family: var(--mono);
-          font-size: 12px;
-        }
-
-        .empty-state {
-          min-height: calc(100vh - 122px);
-          display: grid;
-          place-items: center;
-          text-align: center;
-        }
-
-        .radar {
-          position: relative;
-          width: min(58vw, 360px);
-          aspect-ratio: 1;
-          border: 1px solid rgba(0,212,255,0.28);
-          border-radius: 50%;
-          background: radial-gradient(circle, rgba(0,212,255,0.16), rgba(0,212,255,0.02) 38%, transparent 68%);
-          box-shadow: 0 0 44px rgba(0,212,255,0.16), inset 0 0 38px rgba(0,212,255,0.08);
-        }
-
-        .radar::before,
-        .radar::after {
-          content: '';
-          position: absolute;
-          inset: 12%;
-          border: 1px solid rgba(0,212,255,0.25);
-          border-radius: 50%;
-          animation: radar-ring 2.8s infinite;
-        }
-
-        .radar::after { animation-delay: 1.3s; }
-
-        .radar-sweep {
-          position: absolute;
-          inset: 50% 50% auto auto;
-          width: 48%;
-          height: 2px;
-          transform-origin: left center;
-          background: linear-gradient(90deg, var(--green), transparent);
-          animation: radar-sweep 2.2s linear infinite;
-        }
-
-        .radar-core {
-          position: absolute;
-          inset: 45%;
-          border-radius: 50%;
-          background: var(--cyan);
-          box-shadow: 0 0 22px rgba(0,212,255,0.9);
-        }
-
-        .empty-title {
-          margin: 24px 0 8px;
-          color: var(--cyan);
-          font-family: var(--mono);
-          font-size: clamp(18px, 3vw, 28px);
-          font-weight: 900;
-        }
-
-        .empty-copy {
+          margin-top: 8px;
           color: var(--muted);
           font-family: var(--mono);
           font-size: 12px;
         }
 
-        @media (max-width: 980px) {
-          .top-bar, .main-grid { grid-template-columns: 1fr; }
+        .empty-state {
+          min-height: calc(100vh - 72px);
+          display: grid;
+          place-items: center;
+          text-align: center;
+          padding: 24px;
+        }
+
+        .empty-title {
+          color: var(--text);
+          font-size: 24px;
+          font-weight: 700;
+        }
+
+        .empty-copy {
+          color: var(--muted);
+          font-size: 14px;
+          margin-top: 8px;
+        }
+
+        @media (max-width: 1100px) {
+          .top-bar {
+            grid-template-columns: 1fr;
+          }
+
+          .status-row {
+            justify-content: flex-start;
+          }
+
           .run-button { width: 100%; }
           .stats-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-          .graph-wrap { min-height: 420px; }
-          .graph-canvas { height: 420px; }
+          .main-grid { grid-template-columns: 1fr; }
+          .actions-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         }
 
         @media (max-width: 620px) {
-          .tp-shell { padding: 10px; }
+          .tp-content { padding: 16px; }
+          .top-bar { padding: 16px; }
           .stats-grid { grid-template-columns: 1fr; }
-          .panel { padding: 15px; }
+          .panel,
+          .actions-panel { padding: 18px; }
           .panel-header { display: block; }
-          .severity-badge { margin-top: 12px; }
-          .actions-strip { grid-auto-columns: minmax(190px, 86vw); }
+          .actions-strip { grid-template-columns: 1fr; }
           .graph-wrap { min-height: 360px; }
-          .graph-canvas { height: 360px; }
+          .brand-title { font-size: 20px; }
         }
       `}</style>
 
-      <header className="glass top-bar">
-        <div>
-          <div className="brand-row">
-            <div className="shield">🛡️</div>
-            <div>
-              <h1 className="brand-title">THREATPILOT</h1>
-              <div className="command-label">BANK SOC COMMAND CENTER</div>
-            </div>
-            <span className="live-pill"><span className="live-dot" />LIVE</span>
-            <span className="soc-pill">BANK SOC</span>
-            {loading && <span className="scan-pill">⚡ ANALYZING</span>}
-          </div>
-          <div className="status-row">
-            <span className="inline-center"><span className="status-dot" />Splunk MCP Connected</span>
-            <span className="inline-center"><span className="status-dot cyan" />Neo4j Graph Active</span>
-            <span className="mono">API {API}</span>
+      <header className="top-bar">
+        <div className="brand-row">
+          <div className="shield">🛡️</div>
+          <div>
+            <h1 className="brand-title">ThreatGraph</h1>
+            <div className="command-label">Bank SOC Command Center</div>
           </div>
         </div>
+        <div className="status-row">
+          <span className="status-badge live"><span className="live-dot" />LIVE</span>
+          <span className="status-badge"><span className="status-dot blue" />Splunk MCP Connected</span>
+          <span className="status-badge"><span className="status-dot purple" />Neo4j Active</span>
+          {loading && <span className="status-badge"><span className="status-dot" />Analyzing</span>}
+        </div>
         <button className="run-button" onClick={runDetection} disabled={loading}>
-          {loading ? 'RUNNING DETECTION' : '▶ RUN DETECTION'}
+          {loading ? 'Running Detection' : '▶ Run Detection'}
         </button>
       </header>
 
       {!incident ? (
         <section className="empty-state">
-          <div>
-            <div className="radar" aria-hidden="true">
-              <div className="radar-sweep" />
-              <div className="radar-core" />
-            </div>
-            <div className="empty-title">AWAITING THREAT DATA</div>
+          <div className="card panel">
+            <div className="empty-title">Awaiting Threat Data</div>
             <div className="empty-copy">Commander Agent standing by for Splunk signals and campaign graph correlation.</div>
           </div>
         </section>
       ) : (
-        <>
+        <div className="tp-content">
           <section className="stats-grid">
             {statCards.map((s) => (
-              <article className={`glass stat-card ${s.critical ? 'critical' : ''}`} key={s.label} style={{ '--accent': s.accent }}>
-                <div className="stat-meta">{s.meta}</div>
-                <div className="stat-value">{s.value}</div>
+              <article className={`card stat-card ${s.critical ? 'critical' : ''}`} key={s.label} style={{ '--accent': s.accent }}>
                 <div className="stat-label">{s.label}</div>
+                <div className="stat-value">{s.value}</div>
+                <div className="stat-meta">{s.meta}</div>
               </article>
             ))}
           </section>
 
           <main className="main-grid">
-            <section className="glass panel">
+            <section className="card panel">
               <div className="panel-header">
                 <div>
                   <div className="panel-kicker">Incident Report</div>
-                  <h2 className="panel-title">Credential Attack Response</h2>
-                  <div className="execution-id">{incident.execution_id}</div>
+                  <div className="title-line" />
                 </div>
-                <span className="severity-badge">● {incident.severity}</span>
+              </div>
+
+              <div className="severity-row">
+                <span className="severity-badge">{incident.severity}</span>
+                <span className="execution-id">{incident.execution_id}</span>
               </div>
 
               {incident.campaign_match && (
                 <div className="campaign-banner">
                   <div className="campaign-title">⚠ Campaign Graph Match</div>
                   <div className="campaign-copy">
-                    IPs linked to <strong style={{ color: '#FFB800' }}>"{incident.campaign?.name}"</strong>
+                    <span className="campaign-name">{incident.campaign?.name}</span>
                   </div>
-                  <div className="campaign-copy mono">
-                    {incident.campaign?.date} / {incident.campaign?.description}
-                  </div>
+                  <div className="campaign-copy">{incident.campaign?.description}</div>
                 </div>
               )}
 
-              <div className="terminal">
-                <div className="panel-kicker">AI Verdict</div>
+              <div className="verdict-panel">
+                <div className="panel-kicker" style={{ color: '#2563EB' }}>AI Verdict</div>
                 <div className="terminal-text">{incident.verdict}</div>
               </div>
 
@@ -883,32 +816,31 @@ export default function App() {
               </div>
             </section>
 
-            <section className="glass panel">
+            <section className="card panel">
               <div className="panel-header">
                 <div>
-                  <div className="panel-kicker">Campaign Graph</div>
-                  <h2 className="panel-title">Knowledge Graph</h2>
+                  <div className="panel-kicker">Knowledge Graph</div>
+                  <div className="title-line" />
                 </div>
-                <span className="soc-pill">CONCENTRIC</span>
               </div>
               <div className="graph-wrap">
                 <div ref={cyContainer} className="graph-canvas" />
               </div>
               <div className="legend">
-                <span><span style={{ color: '#FF3B5C' }}>●</span> Attack IP ({incident.offenderIPs?.length})</span>
-                <span><span style={{ color: '#FFB800' }}>●</span> Known Campaign</span>
-                <span><span style={{ color: '#00D4FF' }}>- -</span> Correlation Edge</span>
+                <span><span style={{ color: '#EF4444' }}>●</span> Attack IP ({incident.offenderIPs?.length})</span>
+                <span><span style={{ color: '#F59E0B' }}>●</span> Known Campaign</span>
+                <span><span style={{ color: '#CBD5E1' }}>- -</span> Correlation Edge</span>
               </div>
             </section>
           </main>
 
-          <section className="glass actions-panel">
+          <section className="card actions-panel">
             <div className="panel-header">
               <div>
-                <div className="panel-kicker">Actions Timeline</div>
-                <h2 className="panel-title">Automated Response Chain</h2>
+                <div className="panel-kicker">Automated Response Chain</div>
+                <div className="title-line" />
               </div>
-              <span className="soc-pill">{incident.actions_taken?.length} ACTIONS</span>
+              <span className="count-badge">{incident.actions_taken?.length} ACTIONS</span>
             </div>
             <div className="actions-strip">
               {incident.actions_taken?.map((a, i) => {
@@ -916,7 +848,7 @@ export default function App() {
                 return (
                   <article className="action-card" key={i} style={{ '--tone': tone.color }}>
                     <div className="action-head">
-                      <span>{tone.icon} {tone.label}</span>
+                      <span>{tone.label}</span>
                       <span>#{String(i + 1).padStart(2, '0')}</span>
                     </div>
                     <div className="action-type">{a.type.replace(/_/g, ' ')}</div>
@@ -929,7 +861,7 @@ export default function App() {
 
           <section className="approve-wrap">
             {approved ? (
-              <div className="glass approved-card">
+              <div className="card approved-card">
                 <div className="approved-title">✅ Approved by {incident.approved_by}</div>
                 <div className="approved-time">{incident.approved_at && new Date(incident.approved_at).toLocaleString()}</div>
               </div>
@@ -939,7 +871,7 @@ export default function App() {
               </button>
             )}
           </section>
-        </>
+        </div>
       )}
     </div>
   );
