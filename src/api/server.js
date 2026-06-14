@@ -45,7 +45,13 @@ const DEMO_INCIDENT = {
 const IS_DEMO = process.env.DEMO_MODE === 'true';
 
 const app = express();
-app.use(cors());
+app.use(cors({
+  origin: '*',
+  methods: ['GET', 'POST', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
+app.options('*', cors());
 app.use(express.json());
 
 let latestIncident = null;
