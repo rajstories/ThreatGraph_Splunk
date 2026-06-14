@@ -4,6 +4,53 @@ import cytoscape from 'cytoscape';
 
 const API = 'http://localhost:3001';
 
+const DEMO_INCIDENT = {
+  execution_id: "exec-1781382327907",
+  timestamp: "2026-06-14T02:47:00.000Z",
+  severity: "CRITICAL",
+  total_alerts: 847,
+  offenderIPs: ["203.0.113.13","203.0.113.12","203.0.113.15","203.0.113.10","203.0.113.11","203.0.113.14"],
+  targeted_accounts: ["arjun.sharma","priya.patel","vikram.mehta","sunita.rao","amit.gupta","deepa.nair","rahul.joshi","kavya.reddy","sanjay.iyer","anita.kumar","rohit.singh","meera.pillai"],
+  campaign_match: true,
+  campaign: {
+    id: "CAMP-2024-001",
+    name: "Phishing wave — June 11",
+    date: "2024-06-11",
+    description: "Mass phishing campaign targeting bank customers",
+    confirmed: true
+  },
+  verdict: "CRITICAL: 6 IPs from known campaign \"Phishing wave — June 11\" now credential-stuffing. 12 accounts at risk.",
+  actions_taken: [
+    { type: "ACCOUNT_LOCKED", target: "arjun.sharma", agent: "identity", timestamp: "2026-06-14T02:47:03.000Z" },
+    { type: "ACCOUNT_LOCKED", target: "priya.patel", agent: "identity", timestamp: "2026-06-14T02:47:03.000Z" },
+    { type: "ACCOUNT_LOCKED", target: "vikram.mehta", agent: "identity", timestamp: "2026-06-14T02:47:03.000Z" },
+    { type: "ACCOUNT_LOCKED", target: "sunita.rao", agent: "identity", timestamp: "2026-06-14T02:47:03.000Z" },
+    { type: "ACCOUNT_LOCKED", target: "amit.gupta", agent: "identity", timestamp: "2026-06-14T02:47:03.000Z" },
+    { type: "ACCOUNT_LOCKED", target: "deepa.nair", agent: "identity", timestamp: "2026-06-14T02:47:03.000Z" },
+    { type: "ACCOUNT_LOCKED", target: "rahul.joshi", agent: "identity", timestamp: "2026-06-14T02:47:03.000Z" },
+    { type: "ACCOUNT_LOCKED", target: "kavya.reddy", agent: "identity", timestamp: "2026-06-14T02:47:03.000Z" },
+    { type: "ACCOUNT_LOCKED", target: "sanjay.iyer", agent: "identity", timestamp: "2026-06-14T02:47:03.000Z" },
+    { type: "ACCOUNT_LOCKED", target: "anita.kumar", agent: "identity", timestamp: "2026-06-14T02:47:03.000Z" },
+    { type: "ACCOUNT_LOCKED", target: "rohit.singh", agent: "identity", timestamp: "2026-06-14T02:47:03.000Z" },
+    { type: "ACCOUNT_LOCKED", target: "meera.pillai", agent: "identity", timestamp: "2026-06-14T02:47:03.000Z" },
+    { type: "TOKENS_REVOKED", target: "all_affected_sessions", agent: "identity", timestamp: "2026-06-14T02:47:03.000Z" },
+    { type: "IP_BLOCKED", target: "203.0.113.13", method: "WAF_RULE", agent: "network", timestamp: "2026-06-14T02:47:04.000Z" },
+    { type: "IP_BLOCKED", target: "203.0.113.12", method: "WAF_RULE", agent: "network", timestamp: "2026-06-14T02:47:04.000Z" },
+    { type: "IP_BLOCKED", target: "203.0.113.15", method: "WAF_RULE", agent: "network", timestamp: "2026-06-14T02:47:04.000Z" },
+    { type: "IP_BLOCKED", target: "203.0.113.10", method: "WAF_RULE", agent: "network", timestamp: "2026-06-14T02:47:04.000Z" },
+    { type: "IP_BLOCKED", target: "203.0.113.11", method: "WAF_RULE", agent: "network", timestamp: "2026-06-14T02:47:04.000Z" },
+    { type: "IP_BLOCKED", target: "203.0.113.14", method: "WAF_RULE", agent: "network", timestamp: "2026-06-14T02:47:04.000Z" },
+    { type: "RATE_LIMIT_APPLIED", target: "auth-service", agent: "network", timestamp: "2026-06-14T02:47:04.000Z" },
+    { type: "MONITORING_ESCALATED", target: "auth-service", agent: "infra", timestamp: "2026-06-14T02:47:05.000Z" },
+    { type: "LOG_VERBOSITY_INCREASED", target: "all_services", agent: "infra", timestamp: "2026-06-14T02:47:05.000Z" }
+  ],
+  remediation_complete: true,
+  approved: true,
+  approved_by: "Arjun — SOC Analyst",
+  approved_at: "2026-06-14T02:49:23.000Z",
+  dispatched_at: "2026-06-14T02:47:02.000Z"
+};
+
 export default function App() {
   const [incident, setIncident] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -12,15 +59,25 @@ export default function App() {
   const cy = useRef(null);
 
   useEffect(() => {
+    // Try live API first, fall back to demo data
     const poll = setInterval(async () => {
       try {
-        const res = await axios.get(`${API}/api/incident`);
+        const res = await axios.get(`${API}/api/incident`, { timeout: 2000 });
         if (res.data) {
           setIncident(res.data);
           setApproved(res.data.approved || false);
         }
-      } catch (e) {}
-    }, 2000);
+      } catch (e) {
+        // API not reachable — show demo data
+        setIncident(DEMO_INCIDENT);
+        setApproved(true);
+      }
+    }, 3000);
+
+    // Show demo data immediately on load
+    setIncident(DEMO_INCIDENT);
+    setApproved(true);
+
     return () => clearInterval(poll);
   }, []);
 
